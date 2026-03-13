@@ -100,13 +100,6 @@ Notes:
 - If LLM generation fails, selected endpoints return safe fallback text.
 - If profile image discovery fails, UI uses a generated avatar.
 
-## Demo flow (recommended)
-1. Search a topic on landing page
-2. Filter by subject in discover view
-3. Open a professor card
-4. Open a paper and show takeaways
-5. Open Reach out and generate pointers (optionally after resume upload)
-
 ## Troubleshooting
 - **`Unable to locate credentials`**
   - Configure AWS credentials/profile and retry.
