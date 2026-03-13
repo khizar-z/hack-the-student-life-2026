@@ -12,7 +12,8 @@ import requests
 from bs4 import BeautifulSoup
 
 FACULTY_URL = "https://web.cs.toronto.edu/people/faculty-directory"
-SEMANTIC_SCHOLAR_URL = "https://api.semanticscholar.org/graph/v1/author/search"
+SEMANTIC_SCHOLAR_AUTHOR_SEARCH_URL = "https://api.semanticscholar.org/graph/v1/author/search"
+SEMANTIC_SCHOLAR_AUTHOR_PAPERS_URL = "https://api.semanticscholar.org/graph/v1/author/{author_id}/papers"
 
 def scrape_faculty():
     """Scrape the UofT CS faculty directory page."""
@@ -88,19 +89,27 @@ def scrape_faculty():
     return professors
 
 
-def fetch_papers(professor_name, max_papers=3):
-    """Query Semantic Scholar for a professor's papers."""
+def _request_with_rate_limit(url, params, retries=2, timeout=20):
+    """Request helper with basic 429 retry handling."""
+    for attempt in range(retries + 1):
+        resp = requests.get(url, params=params, timeout=timeout)
+        if resp.status_code != 429:
+            return resp
+        wait_seconds = 2 + attempt * 2
+        print(f"      Rate limited, waiting {wait_seconds}s...")
+        time.sleep(wait_seconds)
+    return resp
+
+
+def fetch_papers(professor_name):
+    """Query Semantic Scholar for all available papers by a professor."""
     params = {
         "query": professor_name,
-        "fields": "name,papers.title,papers.abstract",
-        "limit": 1
+        "fields": "name,authorId,paperCount",
+        "limit": 10
     }
     try:
-        resp = requests.get(SEMANTIC_SCHOLAR_URL, params=params, timeout=15)
-        if resp.status_code == 429:
-            print(f"      Rate limited, waiting 3s...")
-            time.sleep(3)
-            resp = requests.get(SEMANTIC_SCHOLAR_URL, params=params, timeout=15)
+        resp = _request_with_rate_limit(SEMANTIC_SCHOLAR_AUTHOR_SEARCH_URL, params=params, timeout=15)
         if resp.status_code != 200:
             return []
 
@@ -123,20 +132,60 @@ def fetch_papers(professor_name, max_papers=3):
         if not best_author:
             best_author = authors[0]
 
-        papers = best_author.get("papers", [])
-        result = []
-        count = 0
-        for paper in papers:
-            if count >= max_papers:
+        author_id = best_author.get("authorId")
+        if not author_id:
+            return []
+
+        papers = []
+        offset = 0
+        page_size = 100
+        seen_titles = set()
+
+        while True:
+            page_resp = _request_with_rate_limit(
+                SEMANTIC_SCHOLAR_AUTHOR_PAPERS_URL.format(author_id=author_id),
+                params={
+                    "fields": "title,abstract",
+                    "limit": page_size,
+                    "offset": offset
+                },
+                timeout=20
+            )
+            if page_resp.status_code != 200:
                 break
+
+            page_data = page_resp.json().get("data", [])
+            if not page_data:
+                break
+
+            for paper in page_data:
+                title = (paper.get("title") or "").strip()
+                if not title:
+                    continue
+                title_key = title.lower()
+                if title_key in seen_titles:
+                    continue
+                seen_titles.add(title_key)
+                papers.append({
+                    "title": title,
+                    "abstract": (paper.get("abstract") or "").strip()
+                })
+
+            if len(page_data) < page_size:
+                break
+
+            offset += page_size
+            time.sleep(0.2)
+
+        papers.sort(key=lambda item: item["title"].lower())
+        result = []
+        for paper in papers:
             title = paper.get("title", "")
             abstract = paper.get("abstract", "")
-            if title:
-                result.append({
-                    "title": title,
-                    "abstract": abstract or ""
-                })
-                count += 1
+            result.append({
+                "title": title,
+                "abstract": abstract or ""
+            })
         return result
     except Exception as e:
         print(f"      Error fetching papers: {e}")
@@ -144,13 +193,14 @@ def fetch_papers(professor_name, max_papers=3):
 
 
 def build_embed_text(prof):
-    """Build the embedding text from professor data."""
+    """Build embedding text from profile data (paper subset for efficiency)."""
     parts = [prof["name"]]
     if prof["research_areas"]:
         parts.append(f"Research Areas: {prof['research_areas']}")
     if prof["research_interests"]:
         parts.append(f"Research Interests: {prof['research_interests']}")
-    for paper in prof["papers"]:
+    # Keep embed payload bounded while keeping full papers list for UI.
+    for paper in prof["papers"][:20]:
         parts.append(f"Paper: {paper['title']}")
         if paper["abstract"]:
             parts.append(f"Abstract: {paper['abstract']}")

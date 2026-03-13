@@ -369,10 +369,17 @@ def call_llm(prompt: str, max_tokens: int = 1024) -> str:
         raise HTTPException(status_code=502, detail=f"Bedrock AI error: {str(exc)}")
 
 
-def call_llm_with_fallback(prompt: str, fallback: str, max_tokens: int = 256) -> str:
+def call_llm_with_fallback(
+    prompt: str,
+    fallback: str,
+    max_tokens: int = 256,
+    collapse_whitespace: bool = True,
+) -> str:
     try:
-        generated = normalize_space(call_llm(prompt, max_tokens=max_tokens))
-        if not generated:
+        generated = call_llm(prompt, max_tokens=max_tokens).strip()
+        if collapse_whitespace:
+            generated = normalize_space(generated)
+        if not normalize_space(generated):
             return fallback
         return generated
     except Exception:
@@ -417,7 +424,12 @@ def generate_professor_description(prof: dict) -> str:
         f"Professor: {prof.get('name', 'Unknown')}\n"
         f"{context}"
     )
-    description = call_llm_with_fallback(prompt, fallback=fallback, max_tokens=320)
+    description = call_llm_with_fallback(
+        prompt,
+        fallback=fallback,
+        max_tokens=320,
+        collapse_whitespace=False,
+    )
     description_cache[prof_id] = truncate_text(description, 900)
     return description_cache[prof_id]
 
@@ -745,7 +757,12 @@ def paper_takeaways(req: TakeawaysRequest):
         "- The abstract suggests practical implications for related work.\n"
         "Why it matters: You can reference this paper to show informed interest in the professor's work."
     )
-    result = call_llm_with_fallback(prompt, fallback=fallback, max_tokens=320)
+    result = call_llm_with_fallback(
+        prompt,
+        fallback=fallback,
+        max_tokens=320,
+        collapse_whitespace=False,
+    )
     return {"takeaways": result}
 
 
