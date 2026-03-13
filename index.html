@@ -49,12 +49,133 @@
                 radial-gradient(65rem 36rem at 115% 10%, rgba(241, 157, 63, 0.14), transparent 62%),
                 linear-gradient(175deg, #f8fcfb 0%, #f3f8f6 100%);
             -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
         }
 
         .app-shell {
             max-width: 1260px;
             margin: 0 auto;
             padding: 1.2rem 1.2rem 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .bamboo-ambience {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .bamboo-ambience::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(55rem 26rem at -15% 105%, rgba(13, 139, 127, 0.12), transparent 70%),
+                radial-gradient(48rem 24rem at 112% 100%, rgba(13, 139, 127, 0.11), transparent 68%);
+            opacity: 0.7;
+        }
+
+        .bamboo-mist {
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(24rem 14rem at 12% 20%, rgba(255, 255, 255, 0.25), transparent 72%),
+                radial-gradient(20rem 11rem at 88% 26%, rgba(255, 255, 255, 0.2), transparent 72%);
+            animation: mistDrift 22s ease-in-out infinite alternate;
+            opacity: 0.55;
+        }
+
+        .bamboo-stalk {
+            position: absolute;
+            bottom: -16vh;
+            width: 12px;
+            height: 130vh;
+            border-radius: 999px;
+            transform-origin: 50% 100%;
+            opacity: 0.26;
+            background:
+                repeating-linear-gradient(
+                    to bottom,
+                    rgba(6, 100, 88, 0.95) 0px,
+                    rgba(6, 100, 88, 0.95) 34px,
+                    rgba(6, 100, 88, 0.45) 34px,
+                    rgba(6, 100, 88, 0.45) 40px
+                ),
+                linear-gradient(to right, rgba(255, 255, 255, 0.2), rgba(6, 100, 88, 0.1));
+            box-shadow: 0 0 0 1px rgba(6, 100, 88, 0.06);
+            animation: bambooSway 8s ease-in-out infinite;
+        }
+
+        .bamboo-stalk::before,
+        .bamboo-stalk::after {
+            content: "";
+            position: absolute;
+            width: 40px;
+            height: 16px;
+            top: 20%;
+            border-radius: 999px;
+            background: linear-gradient(to right, rgba(12, 116, 102, 0.22), rgba(12, 116, 102, 0));
+            transform-origin: 0% 50%;
+        }
+
+        .bamboo-stalk::before {
+            left: -2px;
+            transform: rotate(-29deg);
+        }
+
+        .bamboo-stalk::after {
+            right: -36px;
+            transform: rotate(23deg);
+        }
+
+        .stalk-a {
+            left: 2.4%;
+            animation-delay: -0.5s;
+        }
+
+        .stalk-b {
+            left: 7%;
+            height: 122vh;
+            width: 10px;
+            opacity: 0.19;
+            animation-duration: 9.3s;
+            animation-delay: -2.5s;
+        }
+
+        .stalk-c {
+            right: 3%;
+            animation-duration: 8.8s;
+            animation-delay: -1.8s;
+        }
+
+        .stalk-d {
+            right: 8.2%;
+            height: 118vh;
+            width: 10px;
+            opacity: 0.17;
+            animation-duration: 10.2s;
+            animation-delay: -3.3s;
+        }
+
+        @keyframes bambooSway {
+            0% { transform: rotate(-1.7deg) translateY(0); }
+            50% { transform: rotate(1.7deg) translateY(-2px); }
+            100% { transform: rotate(-1.1deg) translateY(0); }
+        }
+
+        @keyframes mistDrift {
+            0% { transform: translateX(-0.8%) translateY(0); }
+            100% { transform: translateX(1.2%) translateY(-0.5%); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .bamboo-mist,
+            .bamboo-stalk {
+                animation: none;
+            }
         }
 
         .topbar {
@@ -980,6 +1101,15 @@
                 padding: 0.9rem 0.72rem 1.5rem;
             }
 
+            .bamboo-stalk {
+                opacity: 0.14;
+            }
+
+            .stalk-b,
+            .stalk-d {
+                display: none;
+            }
+
             .home-content {
                 padding: 2.2rem 1rem 2rem;
             }
@@ -1010,6 +1140,14 @@
     </style>
 </head>
 <body>
+    <div class="bamboo-ambience" aria-hidden="true">
+        <div class="bamboo-mist"></div>
+        <span class="bamboo-stalk stalk-a"></span>
+        <span class="bamboo-stalk stalk-b"></span>
+        <span class="bamboo-stalk stalk-c"></span>
+        <span class="bamboo-stalk stalk-d"></span>
+    </div>
+
     <div class="app-shell">
         <header class="topbar">
             <div class="topbar-left">

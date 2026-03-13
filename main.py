@@ -44,6 +44,15 @@ DYNAMO_TABLE_NAME = "ResearchConnectQueries"
 DEFAULT_SUBJECT = "General Computer Science"
 ALL_SUBJECTS = "All Subjects"
 
+# Manual overrides for known profiles.
+# This lets us pin specific professors to a canonical page if scraped data is outdated.
+PROFILE_URL_OVERRIDES: Dict[str, str] = {
+    "Karan Singh": "https://discover.research.utoronto.ca/1003-karan-singh",
+}
+
+# If you ever have a guaranteed-direct image URL, place it here to bypass scraping logic.
+IMAGE_URL_OVERRIDES: Dict[str, str] = {}
+
 SUBJECT_KEYWORDS: Dict[str, List[str]] = {
     "AI & Machine Learning": [
         "machine learning",
@@ -439,6 +448,12 @@ def discover_profile_image(prof: dict) -> Optional[str]:
     if prof_id in image_cache:
         return image_cache[prof_id]
 
+    prof_name = normalize_space(prof.get("name", ""))
+    manual_image = normalize_space(IMAGE_URL_OVERRIDES.get(prof_name, ""))
+    if manual_image:
+        image_cache[prof_id] = manual_image
+        return manual_image
+
     profile_url = normalize_space(prof.get("profile_url", ""))
     if not profile_url:
         image_cache[prof_id] = None
@@ -531,6 +546,10 @@ def load_data():
         professors = json.load(file)
 
     for idx, prof in enumerate(professors):
+        prof_name = normalize_space(prof.get("name", ""))
+        override_profile_url = normalize_space(PROFILE_URL_OVERRIDES.get(prof_name, ""))
+        if override_profile_url:
+            prof["profile_url"] = override_profile_url
         prof["id"] = str(idx)
         prof["subject"] = infer_subject(prof)
         prof["fallback_summary"] = build_fallback_summary(prof)
