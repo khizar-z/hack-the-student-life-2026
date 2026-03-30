@@ -1,4 +1,5 @@
 # Panda - UofT Research Discovery
+<img width="806" height="459" alt="image" src="https://github.com/user-attachments/assets/0db0b93a-469b-4774-a2c2-5b4819d4b123" />
 
 Panda is a hackathon web app that helps UofT students discover professors for research opportunities, understand paper context quickly, and get guidance for outreach.
 
